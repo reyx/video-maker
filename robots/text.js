@@ -1,6 +1,7 @@
 const to = require('await-to-js').to
 const algorithmia = require('algorithmia')
 const sentenceBoundaryDetection = require('sbd')
+const state = require('./state')
 const NaturalLanguageUnderstandingV1 = require('watson-developer-cloud/natural-language-understanding/v1')
 
 // const nlu = new NaturalLanguageUnderstandingV1({
@@ -9,14 +10,15 @@ const NaturalLanguageUnderstandingV1 = require('watson-developer-cloud/natural-l
 //     url: process.env.NATURAL_LANGUAGE_UNDERSTANDING_URL
 // })
 
-let err
 
-async function robot(content) {
+async function robot() {
+    const content = state.load()
     await fetchContentFromWikipedia(content)
     sanitizeContent(content)
     breakContentIntoSentences(content)
     limitMaximumSentences(content)
     await fetchKeywordOfAllSentences(content)
+    state.save(content)
 
     async function fetchContentFromWikipedia(content) {
         try {
@@ -27,7 +29,6 @@ async function robot(content) {
                 lang: content.lang
             })
             const wikipediaContent = wikipediaResponse.get()
-console.log('WOWOWO', wikipediaContent)
             content.sourceContentOriginal = wikipediaContent.content
         } catch (err) {
             throw err
