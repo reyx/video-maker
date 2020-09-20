@@ -1,19 +1,37 @@
+const to = require('await-to-js').to
 const algorithmia = require('algorithmia')
-const algorithmiaApiKey = require('../credentials/algorithmia.json').apiKey
 const sentenceBoundaryDetection = require('sbd')
+const NaturalLanguageUnderstandingV1 = require('watson-developer-cloud/natural-language-understanding/v1')
+
+// const nlu = new NaturalLanguageUnderstandingV1({
+//     iam_apikey: process.env.NATURAL_LANGUAGE_UNDERSTANDING_IAM_APIKEY,
+//     version: '2018-04-05',
+//     url: process.env.NATURAL_LANGUAGE_UNDERSTANDING_URL
+// })
+
+let err
 
 async function robot(content) {
     await fetchContentFromWikipedia(content)
     sanitizeContent(content)
     breakContentIntoSentences(content)
+    limitMaximumSentences(content)
+    await fetchKeywordOfAllSentences(content)
 
     async function fetchContentFromWikipedia(content) {
-        const algorithmiaAuthenticated = algorithmia(algorithmiaApiKey)
-        const wikipediaAlgorithm = algorithmiaAuthenticated.algo('web/WikipediaParser/0.1.2')
-        const wikipediaResponse = await wikipediaAlgorithm.pipe(content.searchTerm)
-        const wikipediaContent = wikipediaResponse.get()
-
-        content.sourceContentOriginal = wikipediaContent.content
+        try {
+            const algorithmiaAuthenticated = algorithmia(process.env.ALGORITHMIA_APIKEY)
+            const wikipediaAlgorithm = algorithmiaAuthenticated.algo('web/WikipediaParser/0.1.2?timeout=500')
+            const wikipediaResponse = await wikipediaAlgorithm.pipe({
+                articleName: content.searchTerm,
+                lang: content.lang
+            })
+            const wikipediaContent = wikipediaResponse.get()
+console.log('WOWOWO', wikipediaContent)
+            content.sourceContentOriginal = wikipediaContent.content
+        } catch (err) {
+            throw err
+        }
     }
 
     function sanitizeContent(content) {
@@ -48,6 +66,36 @@ async function robot(content) {
                 images: []
             })
         })
+    }
+
+    function limitMaximumSentences(content) {
+        content.sentences = content.sentences.slice(0, content.maximumSentences)
+    }
+
+    async function fetchWatsonAndReturnKeywords(sentence) {
+        return new Promise((resolve, reject) => {
+            resolve(sentence.split(' '))
+            // nlu.analyse({
+            //     text: sentence,
+            //     features: {
+            //         keywords: {}
+            //     }
+            // }, (error, response) => {
+            //     if (error) {
+            //         return reject(error)
+            //     }
+
+            //     const keywords = response.keywords.map(keyword => (keyword.text))
+
+            //     resolve(keywords)
+            // })
+        })
+    }
+
+    async function fetchKeywordOfAllSentences(content) {
+        for (const sentence of content.sentences) {
+            sentence.keywords = await fetchWatsonAndReturnKeywords(sentence.text)
+        }
     }
 }
 

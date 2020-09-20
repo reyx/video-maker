@@ -3,6 +3,7 @@ const readline = require('readline-sync')
 function userInput(content) {
     content.searchTerm = askAndReturnSearchTerm()
     content.prefix = askAndReturnPrefix()
+    content.lang = askAndReturnLang()
 }
 
 function askAndReturnSearchTerm() {
@@ -15,6 +16,14 @@ function askAndReturnPrefix() {
     const selectedPrefixText = prefixes[selectedPrefixIndex]
 
     return selectedPrefixText
+}
+
+function askAndReturnLang() {
+    const langs = ['en', 'pt']
+    const selectedLangIndex = readline.keyInSelect(langs)
+    const selectedLangText = langs[selectedLangIndex]
+
+    return selectedLangText
 }
 
 module.exports = userInput
