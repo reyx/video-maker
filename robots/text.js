@@ -4,20 +4,15 @@ const sentenceBoundaryDetection = require('sbd')
 const state = require('./state')
 const NaturalLanguageUnderstandingV1 = require('watson-developer-cloud/natural-language-understanding/v1')
 
-// const nlu = new NaturalLanguageUnderstandingV1({
-//     iam_apikey: process.env.NATURAL_LANGUAGE_UNDERSTANDING_IAM_APIKEY,
-//     version: '2018-04-05',
-//     url: process.env.NATURAL_LANGUAGE_UNDERSTANDING_URL
-// })
-
-
 async function robot() {
     const content = state.load()
+
     await fetchContentFromWikipedia(content)
     sanitizeContent(content)
     breakContentIntoSentences(content)
     limitMaximumSentences(content)
     await fetchKeywordOfAllSentences(content)
+
     state.save(content)
 
     async function fetchContentFromWikipedia(content) {
@@ -75,21 +70,35 @@ async function robot() {
 
     async function fetchWatsonAndReturnKeywords(sentence) {
         return new Promise((resolve, reject) => {
-            resolve(sentence.split(' '))
-            // nlu.analyse({
-            //     text: sentence,
-            //     features: {
-            //         keywords: {}
-            //     }
-            // }, (error, response) => {
-            //     if (error) {
-            //         return reject(error)
-            //     }
+            try {
+                const nlu = new NaturalLanguageUnderstandingV1({
+                    iam_apikey: process.env.NATURAL_LANGUAGE_UNDERSTANDING_IAM_APIKEY,
+                    version: '2018-04-05',
+                    url: process.env.NATURAL_LANGUAGE_UNDERSTANDING_URL
+                })
 
-            //     const keywords = response.keywords.map(keyword => (keyword.text))
+                nlu.analyse({
+                    text: sentence,
+                    features: {
+                        keywords: {}
+                    }
+                }, (error, response) => {
+                    if (error) {
+                        return reject(error)
+                    }
 
-            //     resolve(keywords)
-            // })
+                    const keywords = response.keywords.map(keyword => (keyword.text))
+
+                    resolve(keywords)
+                })
+            } catch (error) {
+                if (error.indexOf('Insufficient credentials') === -1) {
+                    console.log(error)
+                    reject(error)
+                } else {
+                    resolve(sentence.split(' '))
+                }
+            }
         })
     }
 
