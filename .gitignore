@@ -105,4 +105,4 @@ dist
 
 content.json
 
-content/*.png
+content/*[.jpg, .mlt, .mp4, .png]

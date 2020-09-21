@@ -92,7 +92,7 @@ async function robot() {
                     resolve(keywords)
                 })
             } catch (error) {
-                if (error.indexOf('Insufficient credentials') === -1) {
+                if (error.toString().indexOf('Insufficient credentials') === -1) {
                     console.log(error)
                     reject(error)
                 } else {
