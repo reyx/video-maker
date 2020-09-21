@@ -2,7 +2,8 @@ const to = require('await-to-js').to
 const algorithmia = require('algorithmia')
 const sentenceBoundaryDetection = require('sbd')
 const state = require('./state')
-const NaturalLanguageUnderstandingV1 = require('watson-developer-cloud/natural-language-understanding/v1')
+const NaturalLanguageUnderstandingV1 = require('ibm-watson/natural-language-understanding/v1')
+const IamAuthenticator = require('ibm-watson/auth').IamAuthenticator
 
 async function robot() {
     const content = state.load()
@@ -72,25 +73,22 @@ async function robot() {
         return new Promise((resolve, reject) => {
             try {
                 const nlu = new NaturalLanguageUnderstandingV1({
-                    iam_apikey: process.env.NATURAL_LANGUAGE_UNDERSTANDING_IAM_APIKEY,
+                    authenticator: new IamAuthenticator({
+                        apikey: process.env.NATURAL_LANGUAGE_UNDERSTANDING_IAM_APIKEY
+                    }),
                     version: '2018-04-05',
-                    url: process.env.NATURAL_LANGUAGE_UNDERSTANDING_URL
+                    serviceUrl: process.env.NATURAL_LANGUAGE_UNDERSTANDING_URL
                 })
 
-                nlu.analyse({
+                nlu.analyze({
                     text: sentence,
                     features: {
                         keywords: {}
                     }
-                }, (error, response) => {
-                    if (error) {
-                        return reject(error)
-                    }
-
-                    const keywords = response.keywords.map(keyword => (keyword.text))
-
+                }).then(response => {
+                    const keywords = response.result.keywords.map(keyword => keyword.text)
                     resolve(keywords)
-                })
+                }).catch(error => reject(error))
             } catch (error) {
                 if (error.toString().indexOf('Insufficient credentials') === -1) {
                     console.log(error)
